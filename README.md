@@ -1,79 +1,65 @@
-# Loja de Ferramentas Full Stack
+# Tool Store Catalogue
 
-Aplicacao desenvolvida para atender a atividade 3 de Programacao Web II.
-O backend usa Django + Django REST Framework e o frontend e uma pagina
-HTML/CSS/JS servida pela propria aplicacao.
+**A public product catalogue with permission-controlled administration.**
 
-## Estrutura do projeto
+Built for a Web Programming II assignment, this application serves an HTML/CSS/JavaScript frontend from Django and exposes categories and tools through Django REST Framework. Visitors browse the catalogue; authenticated staff with model permissions manage records.
 
-- `loja_backend/loja_backend`: configuracoes globais do Django, roteamento
-  e template inicial.
-- `loja_backend/estoque`: app responsavel pelos modelos, serializers,
-  viewsets e permissoes customizadas.
-- `loja_backend/frontend`: arquivos do cliente web (template, CSS, JS).
-- `db.sqlite3`: banco leve adotado em desenvolvimento.
+**Django · Django REST Framework · Token authentication · SQLite · JavaScript**
 
-## Como executar
+## Capabilities
 
-1. **Criar ambiente (opcional mas recomendado)**
-   ```bash
-   cd loja_backend
-   python -m venv .venv
-   .venv\Scripts\activate  # Windows
-   ```
-2. **Instalar dependencias**
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Preparar banco e usuario**
-   ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-4. **Rodar o servidor**
-   ```bash
-   python manage.py runserver
-   ```
-5. **Acessar o frontend** em `http://127.0.0.1:8000/` e realizar login
-   com o usuario criado para liberar a parte de CRUD.
+| Workflow | Behavior |
+| --- | --- |
+| Browse | Public category/tool lists |
+| Search and order | Search by name, brand, or category; order tools by supported fields |
+| Authenticate | Exchange username/password for a DRF token |
+| Manage records | Django add/change/delete permissions checked per action |
+| Validate prices | Negative prices rejected; zero-priced items remain allowed |
 
-## Fluxo ponta a ponta
+This is a catalogue/CRUD demonstration, not a checkout or payment system.
 
-1. Visitantes carregam `/` e recebem o HTML do `frontend/index.html`,
-   junto com `styles.css` e `app.js`.
-2. O JavaScript executa dois GET: `/api/categorias/` e
-   `/api/ferramentas/`, ambos publicos.
-3. Usuarios autenticados enviam um POST para `/api-token-auth/` com
-   usuario e senha. A resposta retorna o Token.
-4. O token e guardado em `localStorage`. Todas as operacoes de POST, PUT,
-   PATCH e DELETE enviam o cabecalho `Authorization: Token <valor>`.
-5. O viewset valida o token, carrega as permissoes do usuario
-   (leitura/edicao/exclusao) e executa a acao de CRUD solicitada.
-6. A cada alteracao a API responde com JSON e o frontend re-renderiza as
-   listas para manter tudo sincronizado.
+## Run locally
 
-## Explicacao por arquivo principal
+```bash
+git clone https://github.com/joaovitormessias/lojaDeFerramentas.git
+cd lojaDeFerramentas/loja_backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-- `estoque/models.py`: define `Categoria` e `Ferramenta`, com relacionamento
-  `ForeignKey` e campos usados na vitrine.
-- `estoque/serializers.py`: converte os modelos para JSON e expande o nome
-  da categoria para ser exibido diretamente no cliente.
-- `estoque/permissions.py`: cria a classe `PermissaoPorAcao`, separando
-  claramente os niveis de leitura, edicao e exclusao.
-- `estoque/views.py`: usa `ModelViewSet` com filtros de busca/ordenacao,
-  aplica o serializer e as permissoes customizadas.
-- `loja_backend/urls.py`: registra as rotas da API, endpoint de token e a
-  pagina inicial do frontend.
-- `frontend/index.html`: marca a estrutura da pagina web, formularios e
-  template visual para as ferramentas.
-- `frontend/static/css/styles.css`: responsavel pelo visual responsivo e
-  pelos cards da vitrine.
-- `frontend/static/js/app.js`: controla autenticacao, requisicoes para a
-  API e atualizacao dinamica do DOM.
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`. Open http://127.0.0.1:8000 and sign in using your local account. Use `/admin/` to configure normal-user permissions; authentication alone does not grant write access.
 
-## Observacoes uteis
+## API and code review
 
-- As permissoes padrao do Django (`add`, `change`, `delete`) sao usadas
-  para representar os tres niveis exigidos.
-- O throttling anonimo limita abusos em rotas publicas.
+- `GET /api/categorias/` and `GET /api/ferramentas/`: public reads.
+- `POST /api-token-auth/`: obtain a token.
+- Write requests use `Authorization: Token <token>` plus the required model permission.
 
+| File | Responsibility |
+| --- | --- |
+| [models.py](loja_backend/estoque/models.py) | Category/tool relationship and stock fields |
+| [serializers.py](loja_backend/estoque/serializers.py) | API fields, category label, and price validation |
+| [permissions.py](loja_backend/estoque/permissions.py) | Per-action write authorization |
+| [views.py](loja_backend/estoque/views.py) | Search, ordering, and CRUD |
+| [app.js](loja_backend/frontend/static/js/app.js) | Authentication state and catalogue rendering |
+
+## Verify
+
+From `loja_backend/`:
+
+```bash
+python manage.py check
+python manage.py test estoque
+```
+
+The price regression test passed during review. Manually verify anonymous reads, denied anonymous writes, role-specific writes, and a zero-price item. Browser interaction and production deployment were not validated.
+
+## Limits
+
+Development settings allow all hosts and use a development secret. Browser tokens are stored in localStorage, with no expiry/rotation workflow. Category deletion cascades to tools. API validation is not a database price constraint, so direct ORM/admin writes need separate policy. Add permission regression tests, stronger deployment configuration, and a measured browser demo before presenting it as a deployed product.
+
+[Maintainer](https://github.com/joaovitormessias)
